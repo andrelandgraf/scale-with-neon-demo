@@ -1,13 +1,6 @@
-<<<<<<< Updated upstream
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db/db';
 import { contactsTable } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-=======
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db/db";
-import { contactsTable } from "@/lib/db/schema";
->>>>>>> Stashed changes
 
 // GET /api/contacts - Fetch all contacts
 export async function GET() {
