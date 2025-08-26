@@ -6,12 +6,12 @@ import { eq } from 'drizzle-orm';
 // PUT /api/contacts/[id] - Update a contact
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
     const { name, email } = body;
-    const { id } = params;
+    const { id } = await params;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -46,10 +46,10 @@ export async function PUT(
 // DELETE /api/contacts/[id] - Delete a contact
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const [deletedContact] = await db
       .delete(contactsTable)
