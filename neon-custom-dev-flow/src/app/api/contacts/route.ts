@@ -1,13 +1,6 @@
-<<<<<<< Updated upstream
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/db';
-import { contactsTable } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-=======
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db/db";
 import { contactsTable } from "@/lib/db/schema";
->>>>>>> Stashed changes
 
 // GET /api/contacts - Fetch all contacts
 export async function GET() {
@@ -15,10 +8,10 @@ export async function GET() {
     const contacts = await db.select().from(contactsTable);
     return NextResponse.json({ contacts });
   } catch (error) {
-    console.error('Error fetching contacts:', error);
+    console.error("Error fetching contacts:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch contacts' },
-      { status: 500 }
+      { error: "Failed to fetch contacts" },
+      { status: 500 },
     );
   }
 }
@@ -31,8 +24,8 @@ export async function POST(request: NextRequest) {
 
     if (!name || !email) {
       return NextResponse.json(
-        { error: 'Name and email are required' },
-        { status: 400 }
+        { error: "Name and email are required" },
+        { status: 400 },
       );
     }
 
@@ -43,10 +36,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ contact: newContact }, { status: 201 });
   } catch (error) {
-    console.error('Error creating contact:', error);
+    console.error("Error creating contact:", error);
     return NextResponse.json(
-      { error: 'Failed to create contact' },
-      { status: 500 }
+      { error: "Failed to create contact" },
+      { status: 500 },
     );
   }
 }
