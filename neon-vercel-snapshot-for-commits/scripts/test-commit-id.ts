@@ -1,14 +1,11 @@
 #!/usr/bin/env bun
 
-import { writeFileSync, readFileSync, existsSync } from "fs";
-import { join } from "path";
 import { execSync } from "child_process";
 import type {
   ListSnapshotsResponse,
   NeonSnapshot,
   RestoreSnapshotRequest,
   RestoreSnapshotResponse,
-  ConnectionUri,
   NeonApiError,
 } from "./types";
 
@@ -195,78 +192,7 @@ async function testCommitId(commitId: string): Promise<void> {
       `✅ Test branch created: ${testBranch.name} (${testBranch.id})`,
     );
 
-    // Step 4: Get connection string for the new branch
-    console.log("🔗 Getting connection string for test branch...");
-
-    // Wait a moment for the branch to be fully initialized
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const connectionResponse = await fetch(
-      `https://console.neon.tech/api/v2/projects/${projectId}/connection_uri?branch_id=${testBranch.id}&database_name=neondb&role_name=neondb_owner&pooled=true`,
-      {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${neonApiKey}`,
-        },
-      },
-    );
-
-    if (!connectionResponse.ok) {
-      const errorText = await connectionResponse.text();
-      throw new Error(
-        `Failed to get connection URI: ${connectionResponse.status} ${errorText}`,
-      );
-    }
-
-    const connectionData: ConnectionUri = await connectionResponse.json();
-
-    const newDatabaseUrl = connectionData.connection_uri;
-
-    console.log(`✅ Connection string obtained`);
-
-    // Step 5: Update .env file with new DATABASE_URL
-    console.log("📝 Updating .env file...");
-
-    const envPath = join(process.cwd(), ".env");
-    let envContent = "";
-
-    if (existsSync(envPath)) {
-      envContent = readFileSync(envPath, "utf8");
-    }
-
-    // Back up current DATABASE_URL
-    const currentDatabaseUrlMatch = envContent.match(/^DATABASE_URL=(.*)$/m);
-    const currentDatabaseUrl = currentDatabaseUrlMatch
-      ? currentDatabaseUrlMatch[1].replace(/"/g, "")
-      : null;
-
-    // Create backup entry
-    const backupEntry = `# Backup of original DATABASE_URL (before testing ${commitId})\nORIGINAL_DATABASE_URL=${currentDatabaseUrl || "# No previous DATABASE_URL found"}\n`;
-
-    // Update or add DATABASE_URL
-    if (envContent.includes("DATABASE_URL=")) {
-      envContent = envContent.replace(
-        /^DATABASE_URL=.*$/m,
-        `DATABASE_URL="${newDatabaseUrl}"`,
-      );
-    } else {
-      envContent += `\nDATABASE_URL="${newDatabaseUrl}"\n`;
-    }
-
-    // Add backup entry if not already present
-    if (!envContent.includes("ORIGINAL_DATABASE_URL=")) {
-      envContent = backupEntry + envContent;
-    } else {
-      // Update existing backup
-      envContent = envContent.replace(
-        /^ORIGINAL_DATABASE_URL=.*$/m,
-        `ORIGINAL_DATABASE_URL=${currentDatabaseUrl || "# No previous DATABASE_URL found"}`,
-      );
-    }
-
-    writeFileSync(envPath, envContent);
-
-    console.log(`✅ .env file updated with test branch connection`);
+    console.log(`✅ Database branch ready for testing`);
 
     console.log(`
 ┌─ Test Environment Setup ─────────────────────────────────────────────────┐
@@ -274,33 +200,32 @@ async function testCommitId(commitId: string): Promise<void> {
 │ Git State:       Checked out to commit (detached HEAD)${" ".padEnd(17)} │
 │ Snapshot:        ${targetSnapshot.name.padEnd(50)} │
 │ Test Branch:     ${testBranch.name} (${testBranch.id.padEnd(30)}) │
-│ Database URL:    Updated in .env file${" ".padEnd(34)} │
-│ Original URL:    Backed up as ORIGINAL_DATABASE_URL${" ".padEnd(20)} │
 │ Branch Expires:  ${testBranch.expire_at ? new Date(testBranch.expire_at).toLocaleDateString() : "No expiration set".padEnd(50)} │
 └───────────────────────────────────────────────────────────────────────────┘
     `);
 
-    console.log("🎯 Test environment is ready!");
+    console.log("🎯 Code is synchronized to commit:", commitId);
     console.log(
-      "\n💡 Both codebase and database are now synchronized to commit:",
-      commitId,
+      "📝 Now update your DATABASE_URL to connect to the test branch:",
     );
-    console.log("\n✨ Next steps:");
-    console.log(
-      "   1. Run your application to test against the historical state",
-    );
-    console.log("   2. Investigate if the issue existed at this commit");
-    console.log("   3. When done testing, restore to production:");
-    console.log("      bun scripts/restore-prod.ts");
-    console.log(
-      "   4. Or manually restore DATABASE_URL from ORIGINAL_DATABASE_URL",
-    );
+    console.log("");
+    console.log("   1. Go to: https://console.neon.tech");
+    console.log(`   2. Find the branch: ${testBranch.name}`);
+    console.log("   3. Copy the connection string");
+    console.log("   4. Update DATABASE_URL in your .env file");
+    console.log("");
+    console.log("🚀 Then run your application to test the historical state:");
+    console.log("   npm run dev");
+    console.log("");
+    console.log("✨ When done testing, restore to production:");
+    console.log("   bun run restore-prod");
 
     console.log("\n⚠️  Remember:");
-    console.log("   • Both code AND database are at commit", commitId, "state");
+    console.log("   • Code is at commit", commitId);
     console.log(
-      "   • You are in detached HEAD state - use restore-prod to return to normal",
+      "   • Database will be at the same historical point once you update DATABASE_URL",
     );
+    console.log("   • Use restore-prod to return to normal development");
     console.log("   • Test branch will automatically expire in 2 weeks");
   } catch (error) {
     console.error(

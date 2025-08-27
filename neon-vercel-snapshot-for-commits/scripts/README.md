@@ -21,9 +21,6 @@ DATABASE_URL="your_current_database_connection_string"
 # Production Database URL (used by restore-prod script)
 PRODUCTION_DATABASE_URL="your_production_database_connection_string"
 
-# Backup of original DATABASE_URL (automatically managed by test-commit script)
-# ORIGINAL_DATABASE_URL=your_previous_database_url_here
-
 # Optional: Additional environment variables for your application
 # NODE_ENV=development
 # NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -89,15 +86,13 @@ bun scripts/test-commit-id.ts abc123f
 2. 🔍 Finds the snapshot for the specified commit (`prod-<commit-id>`)
 3. 🎋 Creates a new test branch from the snapshot using multi-step restore
 4. ⏰ Sets 2-week expiration on the test branch for automatic cleanup
-5. 🔗 Gets connection details for the test branch
-6. 📝 Updates your `.env` file with the test branch DATABASE_URL
-7. 💾 Backs up your original DATABASE_URL as ORIGINAL_DATABASE_URL
+5. 📝 Provides instructions to manually update DATABASE_URL from Neon Console
 
 **Features:**
 
 - **Full synchronization**: Both code AND database at the same point in time
 - **Safe testing**: Non-destructive testing against historical states
-- **Automatic backup**: Preserves original DATABASE_URL
+- **Manual control**: User controls DATABASE_URL updates via Neon Console
 - **Multi-step restore**: Creates branch without finalizing for safe testing
 - **Automatic cleanup**: Test branches expire after 2 weeks
 - **Git integration**: Manages git checkout automatically
@@ -120,14 +115,13 @@ bun scripts/restore-prod.ts
 1. 📂 Switches git back to production branch (main/master)
 2. ⬇️ Pulls latest changes from remote
 3. 📝 Restores DATABASE_URL from PRODUCTION_DATABASE_URL in .env
-4. 🧹 Cleans up test-related environment variables
-5. ✨ Gets you back to normal development state
+4. ✨ Gets you back to normal development state
 
 **Features:**
 
 - **Complete restoration**: Both codebase and database back to production
 - **Automatic branch detection**: Finds main, master, or default branch
-- **Clean environment**: Removes test artifacts from .env file
+- **Simple environment**: Uses PRODUCTION_DATABASE_URL for restoration
 - **Safe operations**: Validates git repository and environment setup
 
 **Enhanced debugging workflow:**
@@ -137,16 +131,19 @@ bun scripts/restore-prod.ts
 bun run create-snapshot $(git rev-parse --short HEAD)
 
 # 2. Later, when investigating an issue that started recently
-# Jump to a historical state (both code AND database)
+# Jump to a historical state (code synchronized automatically)
 bun run test-commit abc123f
 
-# 3. Test your application against the synchronized historical state
+# 3. Follow the prompts to update DATABASE_URL from Neon Console
+# Copy connection string from the test branch and update your .env
+
+# 4. Test your application against the synchronized historical state
 npm run dev
 
-# 4. Issue exists at this commit? Jump to even earlier commit
+# 5. Issue exists at this commit? Jump to even earlier commit
 bun run test-commit def456a
 
-# 5. Issue doesn't exist? You found when it was introduced!
+# 6. Issue doesn't exist? You found when it was introduced!
 # When done testing, restore everything back to production
 bun run restore-prod
 

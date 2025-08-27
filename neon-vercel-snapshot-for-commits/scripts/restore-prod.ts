@@ -152,9 +152,6 @@ async function restoreProduction(): Promise<void> {
       envContent += `\nDATABASE_URL="${productionUrl}"\n`;
     }
 
-    // Remove backup entries as we're back to production
-    envContent = envContent.replace(/^ORIGINAL_DATABASE_URL=.*$/m, "");
-
     // Clean up empty lines
     envContent = envContent.replace(/\n\n+/g, "\n\n");
 
@@ -177,8 +174,7 @@ async function restoreProduction(): Promise<void> {
 ┌─ Production Restoration Complete ────────────────────────────────────────┐
 │ Branch:          ${finalBranch?.padEnd(50)} │
 │ Commit:          ${commitHash?.padEnd(50)} │
-│ DATABASE_URL:    Restored to production${" ".padEnd(33)} │
-│ Backup Entries:  Removed${" ".padEnd(44)} │
+│ DATABASE_URL:    Restored from PRODUCTION_DATABASE_URL${" ".padEnd(17)} │
 └───────────────────────────────────────────────────────────────────────────┘
     `);
 
@@ -186,7 +182,7 @@ async function restoreProduction(): Promise<void> {
     console.log("\n💡 You are now back to:");
     console.log("   • Latest production code");
     console.log("   • Production database connection");
-    console.log("   • All test branches and backups are cleaned up");
+    console.log("   • Normal development environment");
 
     console.log("\n✨ Ready for normal development!");
   } catch (error) {
