@@ -76,7 +76,7 @@ Restores your database to the state it was in at a specific commit by creating a
 ```bash
 # Test against database state for a specific commit
 bun run test-commit abc123f
-# or directly  
+# or directly
 bun scripts/test-commit-id.ts abc123f
 ```
 

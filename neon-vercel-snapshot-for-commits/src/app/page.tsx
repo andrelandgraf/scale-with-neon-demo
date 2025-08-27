@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 interface Contact {
   id: string;
@@ -14,18 +14,18 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [formData, setFormData] = useState({ name: '', email: '' });
+  const [formData, setFormData] = useState({ name: "", email: "" });
 
   // Fetch contacts
   const fetchContacts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/contacts');
-      if (!response.ok) throw new Error('Failed to fetch contacts');
+      const response = await fetch("/api/contacts");
+      if (!response.ok) throw new Error("Failed to fetch contacts");
       const data = await response.json();
       setContacts(data.contacts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -34,17 +34,17 @@ export default function Home() {
   // Add contact
   const addContact = async () => {
     try {
-      const response = await fetch('/api/contacts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (!response.ok) throw new Error('Failed to add contact');
+      if (!response.ok) throw new Error("Failed to add contact");
       await fetchContacts();
-      setFormData({ name: '', email: '' });
+      setFormData({ name: "", email: "" });
       setIsAddingContact(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -53,30 +53,30 @@ export default function Home() {
     if (!editingContact) return;
     try {
       const response = await fetch(`/api/contacts/${editingContact.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
-      if (!response.ok) throw new Error('Failed to update contact');
+      if (!response.ok) throw new Error("Failed to update contact");
       await fetchContacts();
-      setFormData({ name: '', email: '' });
+      setFormData({ name: "", email: "" });
       setEditingContact(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
   // Delete contact
   const deleteContact = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this contact?')) return;
+    if (!confirm("Are you sure you want to delete this contact?")) return;
     try {
       const response = await fetch(`/api/contacts/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error('Failed to delete contact');
+      if (!response.ok) throw new Error("Failed to delete contact");
       await fetchContacts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -89,13 +89,13 @@ export default function Home() {
   const startAdd = () => {
     setIsAddingContact(true);
     setEditingContact(null);
-    setFormData({ name: '', email: '' });
+    setFormData({ name: "", email: "" });
   };
 
   const cancelForm = () => {
     setIsAddingContact(false);
     setEditingContact(null);
-    setFormData({ name: '', email: '' });
+    setFormData({ name: "", email: "" });
   };
 
   useEffect(() => {
@@ -132,7 +132,7 @@ export default function Home() {
           {(isAddingContact || editingContact) && (
             <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                {editingContact ? 'Edit Contact' : 'Add New Contact'}
+                {editingContact ? "Edit Contact" : "Add New Contact"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -142,7 +142,9 @@ export default function Home() {
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter name"
                   />
@@ -154,7 +156,9 @@ export default function Home() {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter email"
                   />
@@ -165,7 +169,7 @@ export default function Home() {
                   onClick={editingContact ? updateContact : addContact}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
-                  {editingContact ? 'Update' : 'Add'} Contact
+                  {editingContact ? "Update" : "Add"} Contact
                 </button>
                 <button
                   onClick={cancelForm}
@@ -181,11 +185,15 @@ export default function Home() {
           <div className="p-6">
             {loading ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400">Loading contacts...</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Loading contacts...
+                </p>
               </div>
             ) : contacts.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 dark:text-gray-400">No contacts found. Add your first contact!</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  No contacts found. Add your first contact!
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -205,7 +213,10 @@ export default function Home() {
                   </thead>
                   <tbody>
                     {contacts.map((contact) => (
-                      <tr key={contact.id} className="border-b border-gray-200 dark:border-gray-700">
+                      <tr
+                        key={contact.id}
+                        className="border-b border-gray-200 dark:border-gray-700"
+                      >
                         <td className="py-3 text-sm text-gray-900 dark:text-white">
                           {contact.name}
                         </td>

@@ -2,20 +2,22 @@
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import { join } from "path";
-import type { 
-  ListSnapshotsResponse, 
-  NeonSnapshot, 
-  RestoreSnapshotRequest, 
+import type {
+  ListSnapshotsResponse,
+  NeonSnapshot,
+  RestoreSnapshotRequest,
   RestoreSnapshotResponse,
   ConnectionUri,
-  NeonApiError 
+  NeonApiError,
 } from "./types";
 
 async function testCommitId(commitId: string): Promise<void> {
   // Validate commit ID format (basic validation)
   if (!commitId || commitId.length < 7) {
     console.error("❌ Invalid commit ID provided");
-    console.error("   Expected format: git commit hash (at least 7 characters)");
+    console.error(
+      "   Expected format: git commit hash (at least 7 characters)",
+    );
     console.error("   Example: test-commit-id abc123f");
     process.exit(1);
   }
@@ -26,7 +28,9 @@ async function testCommitId(commitId: string): Promise<void> {
 
   if (!neonApiKey) {
     console.error("❌ NEON_API_KEY environment variable is required");
-    console.error("   Get your API key from: https://console.neon.tech/app/settings/api-keys");
+    console.error(
+      "   Get your API key from: https://console.neon.tech/app/settings/api-keys",
+    );
     process.exit(1);
   }
 
@@ -37,12 +41,12 @@ async function testCommitId(commitId: string): Promise<void> {
   }
 
   console.log(`🔍 Setting up test environment for commit: ${commitId}`);
-  
+
   try {
     // Step 1: Find the snapshot for this commit
     const snapshotName = `prod-${commitId}`;
     console.log(`📸 Looking for snapshot: ${snapshotName}...`);
-    
+
     const snapshotsResponse = await fetch(
       `https://console.neon.tech/api/v2/projects/${projectId}/snapshots`,
       {
@@ -61,22 +65,27 @@ async function testCommitId(commitId: string): Promise<void> {
     }
 
     const snapshotsData: ListSnapshotsResponse = await snapshotsResponse.json();
-    const targetSnapshot = snapshotsData.snapshots.find(s => s.name === snapshotName);
+
+    const targetSnapshot = snapshotsData.snapshots.find(
+      (s) => s.name === snapshotName,
+    );
 
     if (!targetSnapshot) {
       console.error(`❌ Snapshot not found: ${snapshotName}`);
       console.error("   Available snapshots:");
       snapshotsData.snapshots
-        .filter(s => s.name.startsWith("prod-"))
-        .forEach(snapshot => {
-          console.error(`     • ${snapshot.name} (${new Date(snapshot.created_at).toLocaleDateString()})`);
+        .filter((s) => s.name.startsWith("prod-"))
+        .forEach((snapshot) => {
+          console.error(
+            `     • ${snapshot.name} (${new Date(snapshot.created_at).toLocaleDateString()})`,
+          );
         });
       console.error("\n💡 Create the snapshot first:");
       console.error(`   bun scripts/create-snapshot.ts ${commitId}`);
       process.exit(1);
     }
 
-    if (targetSnapshot.status !== "active") {
+    if (targetSnapshot.status && targetSnapshot.status !== "active") {
       console.error(`❌ Snapshot is not ready: ${targetSnapshot.status}`);
       console.error("   Wait for the snapshot to become active before testing");
       process.exit(1);
@@ -105,7 +114,7 @@ async function testCommitId(commitId: string): Promise<void> {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
+          Accept: "application/json",
           Authorization: `Bearer ${neonApiKey}`,
         },
         body: JSON.stringify(restoreRequest),
@@ -116,20 +125,23 @@ async function testCommitId(commitId: string): Promise<void> {
       const errorData = await restoreResponse.json();
       const error = errorData as NeonApiError;
       throw new Error(
-        `Failed to restore snapshot: ${restoreResponse.status} - ${error.message || 'Unknown error'}`,
+        `Failed to restore snapshot: ${restoreResponse.status} - ${error.message || "Unknown error"}`,
       );
     }
 
     const restoreData: RestoreSnapshotResponse = await restoreResponse.json();
+
     const testBranch = restoreData.branch;
 
-    console.log(`✅ Test branch created: ${testBranch.name} (${testBranch.id})`);
+    console.log(
+      `✅ Test branch created: ${testBranch.name} (${testBranch.id})`,
+    );
 
     // Step 3: Get connection string for the new branch
     console.log("🔗 Getting connection string for test branch...");
-    
+
     // Wait a moment for the branch to be fully initialized
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     const connectionResponse = await fetch(
       `https://console.neon.tech/api/v2/projects/${projectId}/connection_uri?branch_id=${testBranch.id}&database_name=neondb&role_name=neondb_owner&pooled=true`,
@@ -149,13 +161,14 @@ async function testCommitId(commitId: string): Promise<void> {
     }
 
     const connectionData: ConnectionUri = await connectionResponse.json();
+
     const newDatabaseUrl = connectionData.connection_uri;
 
     console.log(`✅ Connection string obtained`);
 
     // Step 4: Update .env file with new DATABASE_URL
     console.log("📝 Updating .env file...");
-    
+
     const envPath = join(process.cwd(), ".env");
     let envContent = "";
 
@@ -165,7 +178,9 @@ async function testCommitId(commitId: string): Promise<void> {
 
     // Back up current DATABASE_URL
     const currentDatabaseUrlMatch = envContent.match(/^DATABASE_URL=(.*)$/m);
-    const currentDatabaseUrl = currentDatabaseUrlMatch ? currentDatabaseUrlMatch[1].replace(/"/g, "") : null;
+    const currentDatabaseUrl = currentDatabaseUrlMatch
+      ? currentDatabaseUrlMatch[1].replace(/"/g, "")
+      : null;
 
     // Create backup entry
     const backupEntry = `# Backup of original DATABASE_URL (before testing ${commitId})\nORIGINAL_DATABASE_URL=${currentDatabaseUrl || "# No previous DATABASE_URL found"}\n`;
@@ -174,7 +189,7 @@ async function testCommitId(commitId: string): Promise<void> {
     if (envContent.includes("DATABASE_URL=")) {
       envContent = envContent.replace(
         /^DATABASE_URL=.*$/m,
-        `DATABASE_URL="${newDatabaseUrl}"`
+        `DATABASE_URL="${newDatabaseUrl}"`,
       );
     } else {
       envContent += `\nDATABASE_URL="${newDatabaseUrl}"\n`;
@@ -187,7 +202,7 @@ async function testCommitId(commitId: string): Promise<void> {
       // Update existing backup
       envContent = envContent.replace(
         /^ORIGINAL_DATABASE_URL=.*$/m,
-        `ORIGINAL_DATABASE_URL=${currentDatabaseUrl || "# No previous DATABASE_URL found"}`
+        `ORIGINAL_DATABASE_URL=${currentDatabaseUrl || "# No previous DATABASE_URL found"}`,
       );
     }
 
@@ -208,7 +223,9 @@ async function testCommitId(commitId: string): Promise<void> {
 
     console.log("🎯 Test environment is ready!");
     console.log("\n💡 Next steps:");
-    console.log("   1. Run your application to test against the restored database state");
+    console.log(
+      "   1. Run your application to test against the restored database state",
+    );
     console.log("   2. Investigate if the issue existed at this commit");
     console.log("   3. When done, restore the original DATABASE_URL:");
     console.log("      - Check the ORIGINAL_DATABASE_URL in your .env file");
@@ -216,16 +233,30 @@ async function testCommitId(commitId: string): Promise<void> {
     console.log(`   4. Optionally delete the test branch: ${testBranch.id}`);
 
     console.log("\n⚠️  Remember:");
-    console.log("   • This branch contains a snapshot of your production data at the time of commit", commitId);
-    console.log("   • Make sure to restore your original DATABASE_URL when testing is complete");
-    console.log("   • The test branch will automatically expire based on your project settings");
-
+    console.log(
+      "   • This branch contains a snapshot of your production data at the time of commit",
+      commitId,
+    );
+    console.log(
+      "   • Make sure to restore your original DATABASE_URL when testing is complete",
+    );
+    console.log(
+      "   • The test branch will automatically expire based on your project settings",
+    );
   } catch (error) {
-    console.error(`❌ Error setting up test environment: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `❌ Error setting up test environment: ${error instanceof Error ? error.message : String(error)}`,
+    );
     console.error("\n🔍 Troubleshooting:");
-    console.error("   • Ensure the snapshot exists (run create-snapshot first)");
-    console.error("   • Check that NEON_API_KEY and NEON_PROJECT_ID are correct");
-    console.error("   • Verify you have permission to create branches and access snapshots");
+    console.error(
+      "   • Ensure the snapshot exists (run create-snapshot first)",
+    );
+    console.error(
+      "   • Check that NEON_API_KEY and NEON_PROJECT_ID are correct",
+    );
+    console.error(
+      "   • Verify you have permission to create branches and access snapshots",
+    );
     console.error("   • Check your network connection");
     process.exit(1);
   }

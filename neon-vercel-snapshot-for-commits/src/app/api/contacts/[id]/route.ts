@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db/db';
-import { contactsTable } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db/db";
+import { contactsTable } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 // PUT /api/contacts/[id] - Update a contact
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const body = await request.json();
@@ -15,8 +15,8 @@ export async function PUT(
 
     if (!name || !email) {
       return NextResponse.json(
-        { error: 'Name and email are required' },
-        { status: 400 }
+        { error: "Name and email are required" },
+        { status: 400 },
       );
     }
 
@@ -27,18 +27,15 @@ export async function PUT(
       .returning();
 
     if (!updatedContact) {
-      return NextResponse.json(
-        { error: 'Contact not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
 
     return NextResponse.json({ contact: updatedContact });
   } catch (error) {
-    console.error('Error updating contact:', error);
+    console.error("Error updating contact:", error);
     return NextResponse.json(
-      { error: 'Failed to update contact' },
-      { status: 500 }
+      { error: "Failed to update contact" },
+      { status: 500 },
     );
   }
 }
@@ -46,7 +43,7 @@ export async function PUT(
 // DELETE /api/contacts/[id] - Delete a contact
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -57,18 +54,15 @@ export async function DELETE(
       .returning();
 
     if (!deletedContact) {
-      return NextResponse.json(
-        { error: 'Contact not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Contact deleted successfully' });
+    return NextResponse.json({ message: "Contact deleted successfully" });
   } catch (error) {
-    console.error('Error deleting contact:', error);
+    console.error("Error deleting contact:", error);
     return NextResponse.json(
-      { error: 'Failed to delete contact' },
-      { status: 500 }
+      { error: "Failed to delete contact" },
+      { status: 500 },
     );
   }
 }

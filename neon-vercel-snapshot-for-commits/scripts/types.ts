@@ -131,12 +131,11 @@ export interface CreateBranchRequest {
 // Snapshot-related types
 export interface NeonSnapshot {
   id: string;
-  project_id: string;
-  branch_id: string;
   name: string;
+  source_branch_id: string;
   created_at: string;
-  expires_at: string;
-  status: "active" | "expired" | "creating" | "error";
+  expires_at?: string;
+  status?: "active" | "expired" | "creating" | "error";
   size_bytes?: number;
   logical_size?: number;
   timestamp?: string;

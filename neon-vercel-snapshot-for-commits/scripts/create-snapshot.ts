@@ -1,18 +1,20 @@
 #!/usr/bin/env bun
 
-import type { 
-  ListBranchesResponse, 
-  NeonBranch, 
-  CreateSnapshotRequest, 
+import type {
+  ListBranchesResponse,
+  NeonBranch,
+  CreateSnapshotRequest,
   CreateSnapshotResponse,
-  NeonApiError 
+  NeonApiError,
 } from "./types";
 
 async function createSnapshot(commitId: string): Promise<void> {
   // Validate commit ID format (basic validation)
   if (!commitId || commitId.length < 7) {
     console.error("❌ Invalid commit ID provided");
-    console.error("   Expected format: git commit hash (at least 7 characters)");
+    console.error(
+      "   Expected format: git commit hash (at least 7 characters)",
+    );
     console.error("   Example: create-snapshot abc123f");
     process.exit(1);
   }
@@ -23,7 +25,9 @@ async function createSnapshot(commitId: string): Promise<void> {
 
   if (!neonApiKey) {
     console.error("❌ NEON_API_KEY environment variable is required");
-    console.error("   Get your API key from: https://console.neon.tech/app/settings/api-keys");
+    console.error(
+      "   Get your API key from: https://console.neon.tech/app/settings/api-keys",
+    );
     process.exit(1);
   }
 
@@ -34,11 +38,11 @@ async function createSnapshot(commitId: string): Promise<void> {
   }
 
   console.log(`📸 Creating snapshot for commit: ${commitId}`);
-  
+
   try {
     // Step 1: Find the production branch
     console.log("🔍 Finding production database branch...");
-    
+
     const branchesResponse = await fetch(
       `https://console.neon.tech/api/v2/projects/${projectId}/branches`,
       {
@@ -60,32 +64,46 @@ async function createSnapshot(commitId: string): Promise<void> {
 
     // Look for production branch (production -> main -> default branch)
     let productionBranch: NeonBranch | null = null;
-    
+
     // First, try to find a branch named "production"
-    productionBranch = branchesData.branches.find(b => b.name.toLowerCase() === "production") || null;
-    
+    productionBranch =
+      branchesData.branches.find(
+        (b) => b.name.toLowerCase() === "production",
+      ) || null;
+
     // If not found, try "main"
     if (!productionBranch) {
-      productionBranch = branchesData.branches.find(b => b.name.toLowerCase() === "main") || null;
+      productionBranch =
+        branchesData.branches.find((b) => b.name.toLowerCase() === "main") ||
+        null;
     }
-    
+
     // If still not found, use the default/primary branch
     if (!productionBranch) {
-      productionBranch = branchesData.branches.find(b => b.default || b.primary) || null;
+      productionBranch =
+        branchesData.branches.find((b) => b.default || b.primary) || null;
     }
 
     if (!productionBranch) {
       console.error("❌ Production branch not found");
-      console.error("   Looking for branch named 'production', 'main', or the default branch");
+      console.error(
+        "   Looking for branch named 'production', 'main', or the default branch",
+      );
       console.error("   Available branches:");
-      branchesData.branches.forEach(branch => {
-        const typeInfo = branch.default ? " (default)" : branch.primary ? " (primary)" : "";
+      branchesData.branches.forEach((branch) => {
+        const typeInfo = branch.default
+          ? " (default)"
+          : branch.primary
+            ? " (primary)"
+            : "";
         console.error(`     • ${branch.name}${typeInfo}`);
       });
       process.exit(1);
     }
 
-    console.log(`✅ Found production branch: ${productionBranch.name} (${productionBranch.id})`);
+    console.log(
+      `✅ Found production branch: ${productionBranch.name} (${productionBranch.id})`,
+    );
 
     // Step 2: Create snapshot with naming convention: prod-<commit-id>
     const snapshotName = `prod-${commitId}`;
@@ -96,29 +114,27 @@ async function createSnapshot(commitId: string): Promise<void> {
     expirationDate.setMonth(expirationDate.getMonth() + 4);
     const expiresAt = expirationDate.toISOString();
 
-    const createSnapshotRequest: CreateSnapshotRequest = {
+    // Build query parameters for the snapshot API
+    const queryParams = new URLSearchParams({
       name: snapshotName,
       expires_at: expiresAt,
-    };
+    });
 
-    const snapshotResponse = await fetch(
-      `https://console.neon.tech/api/v2/projects/${projectId}/branches/${productionBranch.id}/snapshot`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          Authorization: `Bearer ${neonApiKey}`,
-        },
-        body: JSON.stringify(createSnapshotRequest),
+    const snapshotUrl = `https://console.neon.tech/api/v2/projects/${projectId}/branches/${productionBranch.id}/snapshot?${queryParams.toString()}`;
+
+    const snapshotResponse = await fetch(snapshotUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${neonApiKey}`,
       },
-    );
+    });
 
     if (!snapshotResponse.ok) {
       const errorData = await snapshotResponse.json();
       const error = errorData as NeonApiError;
       throw new Error(
-        `Failed to create snapshot: ${snapshotResponse.status} - ${error.message || 'Unknown error'}`,
+        `Failed to create snapshot: ${snapshotResponse.status} - ${error.message || "Unknown error"}`,
       );
     }
 
@@ -132,19 +148,24 @@ async function createSnapshot(commitId: string): Promise<void> {
 │ Source Branch:  ${productionBranch.name.padEnd(50)} │
 │ Commit ID:      ${commitId.padEnd(50)} │
 │ Created:        ${new Date(snapshotData.snapshot.created_at).toLocaleString().padEnd(50)} │
-│ Expires:        ${new Date(snapshotData.snapshot.expires_at).toLocaleString().padEnd(50)} │
-│ Status:         ${snapshotData.snapshot.status.padEnd(50)} │
+│ Expires:        ${new Date(expiresAt).toLocaleDateString().padEnd(50)} │
 └───────────────────────────────────────────────────────────────────────────┘
     `);
 
     console.log("🎯 Use this snapshot name for restoration:");
     console.log(`   bun scripts/test-commit-id.ts ${commitId}`);
-    
-    console.log("\n💡 This snapshot represents the production database state for commit:", commitId);
-    console.log("   It will automatically expire in 4 months to save storage costs.");
 
+    console.log(
+      "\n💡 This snapshot represents the production database state for commit:",
+      commitId,
+    );
+    console.log(
+      "   It will automatically expire in 4 months to save storage costs.",
+    );
   } catch (error) {
-    console.error(`❌ Error creating snapshot: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `❌ Error creating snapshot: ${error instanceof Error ? error.message : String(error)}`,
+    );
     console.error("\n🔍 Troubleshooting:");
     console.error("   • Ensure NEON_API_KEY and NEON_PROJECT_ID are correct");
     console.error("   • Check that the production branch exists");
