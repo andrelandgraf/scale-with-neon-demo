@@ -2,6 +2,7 @@
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { execSync } from "child_process";
 import type {
   ListSnapshotsResponse,
   NeonSnapshot,
@@ -43,7 +44,64 @@ async function testCommitId(commitId: string): Promise<void> {
   console.log(`🔍 Setting up test environment for commit: ${commitId}`);
 
   try {
-    // Step 1: Find the snapshot for this commit
+    // Step 1: Checkout to the specific commit in git
+    console.log("📂 Switching codebase to commit state...");
+
+    // Check if we're in a git repository
+    try {
+      execSync("git status", { stdio: "pipe" });
+    } catch (error) {
+      console.error("❌ Not in a git repository or git is not available");
+      console.error(
+        "   This script requires git to synchronize code and database state",
+      );
+      process.exit(1);
+    }
+
+    // Get current branch/commit for backup information
+    let currentBranch: string = "";
+    try {
+      currentBranch = execSync("git branch --show-current", {
+        encoding: "utf8",
+        stdio: "pipe",
+      }).trim();
+    } catch (error) {
+      // Might be in detached HEAD state
+    }
+
+    if (!currentBranch) {
+      // We might already be in detached HEAD state
+      try {
+        const currentCommit = execSync("git rev-parse --short HEAD", {
+          encoding: "utf8",
+          stdio: "pipe",
+        }).trim();
+        console.log(`📍 Currently at commit: ${currentCommit}`);
+      } catch (error) {
+        console.log("📍 Unable to determine current git state");
+      }
+    } else {
+      console.log(`📍 Currently on branch: ${currentBranch}`);
+    }
+
+    // Checkout to the specific commit
+    try {
+      execSync(`git checkout ${commitId}`, { stdio: "pipe" });
+    } catch (error) {
+      console.error(`❌ Failed to checkout commit: ${commitId}`);
+      console.error(
+        "   Please ensure the commit hash is valid and exists in your repository",
+      );
+      console.error(
+        "   You may need to fetch from remote if the commit is not local",
+      );
+      process.exit(1);
+    }
+
+    console.log(`✅ Checked out to commit: ${commitId}`);
+    console.log("   Note: You are now in 'detached HEAD' state");
+
+    // Step 2: Find the snapshot for this commit
     const snapshotName = `prod-${commitId}`;
     console.log(`📸 Looking for snapshot: ${snapshotName}...`);
 
@@ -93,7 +151,7 @@ async function testCommitId(commitId: string): Promise<void> {
 
     console.log(`✅ Found snapshot: ${snapshotName} (${targetSnapshot.id})`);
 
-    // Step 2: Create a new branch from the snapshot (multi-step restore - step 1)
+    // Step 3: Create a new branch from the snapshot (multi-step restore - step 1)
     const testBranchName = `test-${commitId}`;
     console.log(`🎋 Creating test branch: ${testBranchName}...`);
 
@@ -137,7 +195,7 @@ async function testCommitId(commitId: string): Promise<void> {
       `✅ Test branch created: ${testBranch.name} (${testBranch.id})`,
     );
 
-    // Step 3: Get connection string for the new branch
+    // Step 4: Get connection string for the new branch
     console.log("🔗 Getting connection string for test branch...");
 
     // Wait a moment for the branch to be fully initialized
@@ -166,7 +224,7 @@ async function testCommitId(commitId: string): Promise<void> {
 
     console.log(`✅ Connection string obtained`);
 
-    // Step 4: Update .env file with new DATABASE_URL
+    // Step 5: Update .env file with new DATABASE_URL
     console.log("📝 Updating .env file...");
 
     const envPath = join(process.cwd(), ".env");
@@ -213,6 +271,7 @@ async function testCommitId(commitId: string): Promise<void> {
     console.log(`
 ┌─ Test Environment Setup ─────────────────────────────────────────────────┐
 │ Commit ID:       ${commitId.padEnd(50)} │
+│ Git State:       Checked out to commit (detached HEAD)${" ".padEnd(17)} │
 │ Snapshot:        ${targetSnapshot.name.padEnd(50)} │
 │ Test Branch:     ${testBranch.name} (${testBranch.id.padEnd(30)}) │
 │ Database URL:    Updated in .env file${" ".padEnd(34)} │
@@ -222,27 +281,27 @@ async function testCommitId(commitId: string): Promise<void> {
     `);
 
     console.log("🎯 Test environment is ready!");
-    console.log("\n💡 Next steps:");
     console.log(
-      "   1. Run your application to test against the restored database state",
-    );
-    console.log("   2. Investigate if the issue existed at this commit");
-    console.log("   3. When done, restore the original DATABASE_URL:");
-    console.log("      - Check the ORIGINAL_DATABASE_URL in your .env file");
-    console.log("      - Update DATABASE_URL back to the original value");
-    console.log(`   4. Optionally delete the test branch: ${testBranch.id}`);
-
-    console.log("\n⚠️  Remember:");
-    console.log(
-      "   • This branch contains a snapshot of your production data at the time of commit",
+      "\n💡 Both codebase and database are now synchronized to commit:",
       commitId,
     );
+    console.log("\n✨ Next steps:");
     console.log(
-      "   • Make sure to restore your original DATABASE_URL when testing is complete",
+      "   1. Run your application to test against the historical state",
     );
+    console.log("   2. Investigate if the issue existed at this commit");
+    console.log("   3. When done testing, restore to production:");
+    console.log("      bun scripts/restore-prod.ts");
     console.log(
-      "   • The test branch will automatically expire based on your project settings",
+      "   4. Or manually restore DATABASE_URL from ORIGINAL_DATABASE_URL",
     );
+
+    console.log("\n⚠️  Remember:");
+    console.log("   • Both code AND database are at commit", commitId, "state");
+    console.log(
+      "   • You are in detached HEAD state - use restore-prod to return to normal",
+    );
+    console.log("   • Test branch will automatically expire in 2 weeks");
   } catch (error) {
     console.error(
       `❌ Error setting up test environment: ${error instanceof Error ? error.message : String(error)}`,

@@ -18,6 +18,9 @@ NEON_PROJECT_ID=your_neon_project_id_here
 # Database URL (will be automatically updated by scripts)
 DATABASE_URL="your_current_database_connection_string"
 
+# Production Database URL (used by restore-prod script)
+PRODUCTION_DATABASE_URL="your_production_database_connection_string"
+
 # Backup of original DATABASE_URL (automatically managed by test-commit script)
 # ORIGINAL_DATABASE_URL=your_previous_database_url_here
 
@@ -69,12 +72,12 @@ bun scripts/create-snapshot.ts abc123f
 
 ### `test-commit`
 
-Restores your database to the state it was in at a specific commit by creating a test branch from a snapshot and updating your local `.env` file.
+Synchronizes both your codebase and database to a specific commit state for debugging historical issues.
 
 **Usage:**
 
 ```bash
-# Test against database state for a specific commit
+# Test against both code and database state for a specific commit
 bun run test-commit abc123f
 # or directly
 bun scripts/test-commit-id.ts abc123f
@@ -82,36 +85,81 @@ bun scripts/test-commit-id.ts abc123f
 
 **What it does:**
 
-1. 🔍 Finds the snapshot for the specified commit (`prod-<commit-id>`)
-2. 🎋 Creates a new test branch from the snapshot using multi-step restore
-3. ⏰ Sets 2-week expiration on the test branch for automatic cleanup
-4. 🔗 Gets connection details for the test branch
-5. 📝 Updates your `.env` file with the test branch DATABASE_URL
-6. 💾 Backs up your original DATABASE_URL as ORIGINAL_DATABASE_URL
+1. 📂 Checks out your git repository to the specific commit (detached HEAD)
+2. 🔍 Finds the snapshot for the specified commit (`prod-<commit-id>`)
+3. 🎋 Creates a new test branch from the snapshot using multi-step restore
+4. ⏰ Sets 2-week expiration on the test branch for automatic cleanup
+5. 🔗 Gets connection details for the test branch
+6. 📝 Updates your `.env` file with the test branch DATABASE_URL
+7. 💾 Backs up your original DATABASE_URL as ORIGINAL_DATABASE_URL
 
 **Features:**
 
-- **Safe testing**: Non-destructive testing against historical database states
+- **Full synchronization**: Both code AND database at the same point in time
+- **Safe testing**: Non-destructive testing against historical states
 - **Automatic backup**: Preserves original DATABASE_URL
 - **Multi-step restore**: Creates branch without finalizing for safe testing
 - **Automatic cleanup**: Test branches expire after 2 weeks
-- **Clear documentation**: Shows exactly what was changed and how to revert
+- **Git integration**: Manages git checkout automatically
 
-**Example workflow:**
+### `restore-prod`
+
+Restores both your codebase and database connection back to production state.
+
+**Usage:**
+
+```bash
+# Restore to production state
+bun run restore-prod
+# or directly
+bun scripts/restore-prod.ts
+```
+
+**What it does:**
+
+1. 📂 Switches git back to production branch (main/master)
+2. ⬇️ Pulls latest changes from remote
+3. 📝 Restores DATABASE_URL from PRODUCTION_DATABASE_URL in .env
+4. 🧹 Cleans up test-related environment variables
+5. ✨ Gets you back to normal development state
+
+**Features:**
+
+- **Complete restoration**: Both codebase and database back to production
+- **Automatic branch detection**: Finds main, master, or default branch
+- **Clean environment**: Removes test artifacts from .env file
+- **Safe operations**: Validates git repository and environment setup
+
+**Enhanced debugging workflow:**
 
 ```bash
 # 1. Create snapshot when deploying to production (in CI/CD)
 bun run create-snapshot $(git rev-parse --short HEAD)
 
-# 2. Later, when investigating an issue
+# 2. Later, when investigating an issue that started recently
+# Jump to a historical state (both code AND database)
 bun run test-commit abc123f
 
-# 3. Test your application against the historical database state
+# 3. Test your application against the synchronized historical state
 npm run dev
 
-# 4. When done testing, restore original DATABASE_URL
-# (Check ORIGINAL_DATABASE_URL in .env and restore it manually)
+# 4. Issue exists at this commit? Jump to even earlier commit
+bun run test-commit def456a
+
+# 5. Issue doesn't exist? You found when it was introduced!
+# When done testing, restore everything back to production
+bun run restore-prod
+
+# You're now back to normal development state
+npm run dev
 ```
+
+**Key advantages:**
+
+- 🔄 **Full time travel**: Code and database perfectly synchronized
+- 🎯 **Precise debugging**: Know exactly when issues were introduced
+- 🛡️ **Safe operations**: Production never touched, easy restoration
+- ⚡ **Fast switching**: Jump between any commit states instantly
 
 ### `init-new-feature`
 
@@ -216,10 +264,19 @@ bun run init-new-feature
 
 ### Best Practices
 
-- **Branch Naming**: Use descriptive names like `andrelandgraf/user-authentication`
-- **Regular Cleanup**: The script automatically sets TTL, but you can manually delete branches early if needed
+- **Snapshot Creation**: Always create snapshots after significant deployments
 - **Environment Variables**: Keep your `.env` file secure and don't commit it to version control
-- **Database Migrations**: Run `bun run db:migrate` after creating a new branch if you have pending migrations
+- **PRODUCTION_DATABASE_URL**: Always set this to your actual production database URL
+- **Git Repository**: Ensure you're in a git repository for full functionality
+- **Testing Workflow**: Use restore-prod to get back to normal development state
+- **Database Migrations**: Run `bun run db:migrate` after creating branches if you have pending migrations
+
+### Prerequisites for Enhanced Scripts
+
+- **Git repository**: Scripts require git for codebase synchronization
+- **PRODUCTION_DATABASE_URL**: Must be set in .env for restore-prod script
+- **Commit access**: Ensure commits you want to test are available locally (may need to fetch)
+- **Node.js compatible**: Scripts use standard Node.js child_process for git operations
 
 ## Security Notes
 

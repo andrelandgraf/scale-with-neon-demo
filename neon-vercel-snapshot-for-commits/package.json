@@ -12,7 +12,8 @@
     "db:studio": "drizzle-kit studio",
     "which-db": "bun scripts/which-db.ts",
     "create-snapshot": "bun scripts/create-snapshot.ts",
-    "test-commit": "bun scripts/test-commit-id.ts"
+    "test-commit": "bun scripts/test-commit-id.ts",
+    "restore-prod": "bun scripts/restore-prod.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bun": "^1.2.21",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
