@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 // PUT /api/contacts/[id] - Update a contact
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const body = await request.json();
@@ -43,7 +43,7 @@ export async function PUT(
 // DELETE /api/contacts/[id] - Delete a contact
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;

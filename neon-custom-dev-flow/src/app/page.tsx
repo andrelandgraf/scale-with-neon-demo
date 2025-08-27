@@ -263,27 +263,25 @@ export default function Home() {
           </div>
         </div>
       </div>
-      
+
       {/* Delete Confirmation Modal */}
-      <Dialog open={deleteContactId !== null} onOpenChange={() => setDeleteContactId(null)}>
+      <Dialog
+        open={deleteContactId !== null}
+        onOpenChange={() => setDeleteContactId(null)}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Contact</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this contact? This action cannot be undone.
+              Are you sure you want to delete this contact? This action cannot
+              be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteContactId(null)}
-            >
+            <Button variant="outline" onClick={() => setDeleteContactId(null)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDeleteContact}
-            >
+            <Button variant="destructive" onClick={confirmDeleteContact}>
               Delete
             </Button>
           </DialogFooter>

@@ -5,37 +5,49 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 
 import type {
-  NeonBranch,
   ListBranchesResponse,
   CreateBranchResponse,
   CreateBranchRequest,
-  ConnectionUri
 } from "./types";
 
 async function initNewFeature(): Promise<void> {
   // Get branch name from command line arguments or infer from current git branch
   let branchName = process.argv[2];
-  
+
   if (!branchName) {
     // Try to infer from current git branch
     try {
       const result = await $`git branch --show-current`.text();
       const currentBranch = result.trim();
-      
-      if (currentBranch && currentBranch !== 'main' && currentBranch !== 'master') {
+
+      if (
+        currentBranch &&
+        currentBranch !== "main" &&
+        currentBranch !== "master"
+      ) {
         branchName = currentBranch;
         console.log(`🔍 Using current git branch: ${branchName}`);
       } else {
-        console.error("❌ Please provide a branch name or switch to a feature branch:");
+        console.error(
+          "❌ Please provide a branch name or switch to a feature branch:",
+        );
         console.error("   Usage: bun run init-new-feature [branch-name]");
-        console.error("   Example: bun run init-new-feature andrelandgraf/feature-name");
-        console.error("   Or checkout a feature branch first and run without arguments");
+        console.error(
+          "   Example: bun run init-new-feature andrelandgraf/feature-name",
+        );
+        console.error(
+          "   Or checkout a feature branch first and run without arguments",
+        );
         process.exit(1);
       }
     } catch (error) {
-      console.error("❌ Could not determine current git branch. Please provide a branch name:");
+      console.error(
+        "❌ Could not determine current git branch. Please provide a branch name:",
+      );
       console.error("   Usage: bun run init-new-feature <branch-name>");
-      console.error("   Example: bun run init-new-feature andrelandgraf/feature-name");
+      console.error(
+        "   Example: bun run init-new-feature andrelandgraf/feature-name",
+      );
       process.exit(1);
     }
   }
@@ -43,10 +55,12 @@ async function initNewFeature(): Promise<void> {
   // Validate required environment variables
   const neonApiKey = process.env.NEON_API_KEY;
   const projectId = process.env.NEON_PROJECT_ID;
-  
+
   if (!neonApiKey) {
     console.error("❌ NEON_API_KEY environment variable is required");
-    console.error("   Get your API key from: https://console.neon.tech/app/settings/api-keys");
+    console.error(
+      "   Get your API key from: https://console.neon.tech/app/settings/api-keys",
+    );
     process.exit(1);
   }
 
@@ -62,7 +76,7 @@ async function initNewFeature(): Promise<void> {
     // Step 1: Ensure we're on the correct git branch
     const currentBranch = await $`git branch --show-current`.text();
     const currentBranchName = currentBranch.trim();
-    
+
     if (currentBranchName === branchName) {
       console.log(`✅ Already on branch '${branchName}'`);
     } else {
@@ -75,32 +89,44 @@ async function initNewFeature(): Promise<void> {
 
     // Step 2: Get all Neon branches to find production branch
     console.log("🔍 Finding production database branch...");
-    const branchesResponse = await fetch(`https://console.neon.tech/api/v2/projects/${projectId}/branches`, {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${neonApiKey}`
-      }
-    });
+    const branchesResponse = await fetch(
+      `https://console.neon.tech/api/v2/projects/${projectId}/branches`,
+      {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${neonApiKey}`,
+        },
+      },
+    );
 
     if (!branchesResponse.ok) {
       const errorText = await branchesResponse.text();
-      throw new Error(`Failed to fetch branches: ${branchesResponse.status} ${errorText}`);
+      throw new Error(
+        `Failed to fetch branches: ${branchesResponse.status} ${errorText}`,
+      );
     }
 
     const branchesData: ListBranchesResponse = await branchesResponse.json();
-    const productionBranch = branchesData.branches.find(branch => 
-      branch.name === 'production' || branch.name === 'main' || branch.default === true
+    const productionBranch = branchesData.branches.find(
+      (branch) =>
+        branch.name === "production" ||
+        branch.name === "main" ||
+        branch.default === true,
     );
 
     if (!productionBranch) {
-      throw new Error("Production branch not found. Looking for branch named 'production', 'main', or the default branch.");
+      throw new Error(
+        "Production branch not found. Looking for branch named 'production', 'main', or the default branch.",
+      );
     }
 
-    console.log(`✅ Found production branch: ${productionBranch.name} (${productionBranch.id})`);
+    console.log(
+      `✅ Found production branch: ${productionBranch.name} (${productionBranch.id})`,
+    );
 
     // Step 3: Create new Neon branch with TTL (2 weeks = 14 days)
     console.log("🎋 Creating new Neon database branch...");
-    
+
     // Calculate expiration date (2 weeks from now)
     const expirationDate = new Date();
     expirationDate.setDate(expirationDate.getDate() + 14);
@@ -110,34 +136,43 @@ async function initNewFeature(): Promise<void> {
       endpoints: [
         {
           type: "read_write",
-          pooler_enabled: true
-        }
+          pooler_enabled: true,
+        },
       ],
       branch: {
         parent_id: productionBranch.id,
-        name: branchName.replace(/[^a-zA-Z0-9-]/g, '-'), // Sanitize branch name for Neon
-        expire_at: expirationISO
-      }
+        name: branchName.replace(/[^a-zA-Z0-9-]/g, "-"), // Sanitize branch name for Neon
+        expire_at: expirationISO,
+      },
     };
 
-    const createResponse = await fetch(`https://console.neon.tech/api/v2/projects/${projectId}/branches`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${neonApiKey}`,
-        'Content-Type': 'application/json'
+    const createResponse = await fetch(
+      `https://console.neon.tech/api/v2/projects/${projectId}/branches`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${neonApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(createBranchPayload),
       },
-      body: JSON.stringify(createBranchPayload)
-    });
+    );
 
     if (!createResponse.ok) {
       const errorText = await createResponse.text();
-      throw new Error(`Failed to create branch: ${createResponse.status} ${errorText}`);
+      throw new Error(
+        `Failed to create branch: ${createResponse.status} ${errorText}`,
+      );
     }
 
     const newBranchData: CreateBranchResponse = await createResponse.json();
-    console.log(`✅ Neon branch created: ${newBranchData.branch.name} (${newBranchData.branch.id})`);
-    console.log(`⏰ Branch will expire on: ${expirationDate.toLocaleDateString()}`);
+    console.log(
+      `✅ Neon branch created: ${newBranchData.branch.name} (${newBranchData.branch.id})`,
+    );
+    console.log(
+      `⏰ Branch will expire on: ${expirationDate.toLocaleDateString()}`,
+    );
 
     // Step 4: Get the pooled connection string
     const connectionUri = newBranchData.connection_uris[0];
@@ -147,41 +182,44 @@ async function initNewFeature(): Promise<void> {
 
     // Use the pooler host if available for better performance
     const poolerHost = connectionUri.connection_parameters.pooler_host;
-    const databaseUrl = poolerHost 
-      ? connectionUri.connection_uri.replace(connectionUri.connection_parameters.host, poolerHost)
+    const databaseUrl = poolerHost
+      ? connectionUri.connection_uri.replace(
+          connectionUri.connection_parameters.host,
+          poolerHost,
+        )
       : connectionUri.connection_uri;
 
     // Step 5: Update .env file with new DATABASE_URL
     console.log("📝 Updating .env file with new database connection...");
-    
-    const envPath = join(process.cwd(), '.env');
-    let envContent = '';
-    
+
+    const envPath = join(process.cwd(), ".env");
+    let envContent = "";
+
     if (existsSync(envPath)) {
-      envContent = readFileSync(envPath, 'utf8');
+      envContent = readFileSync(envPath, "utf8");
     }
 
     // Update or add DATABASE_URL
-    const lines = envContent.split('\n');
+    const lines = envContent.split("\n");
     let updated = false;
-    
+
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith('DATABASE_URL=')) {
+      if (lines[i].startsWith("DATABASE_URL=")) {
         lines[i] = `DATABASE_URL="${databaseUrl}"`;
         updated = true;
         break;
       }
     }
-    
+
     if (!updated) {
       // Add DATABASE_URL if not found
-      if (envContent && !envContent.endsWith('\n')) {
-        lines.push('');
+      if (envContent && !envContent.endsWith("\n")) {
+        lines.push("");
       }
       lines.push(`DATABASE_URL="${databaseUrl}"`);
     }
 
-    writeFileSync(envPath, lines.join('\n'));
+    writeFileSync(envPath, lines.join("\n"));
     console.log("✅ .env file updated with new DATABASE_URL");
 
     // Step 6: Success message
@@ -189,11 +227,11 @@ async function initNewFeature(): Promise<void> {
     console.log(`
 ┌─ Summary ─────────────────────────────────────────────────────────────────┐
 │ Git Branch:     ${branchName.padEnd(50)} │
-│ Neon Branch:    ${newBranchData.branch.name} (${newBranchData.branch.id})${' '.repeat(Math.max(0, 50 - newBranchData.branch.name.length - newBranchData.branch.id.length - 3))} │
+│ Neon Branch:    ${newBranchData.branch.name} (${newBranchData.branch.id})${" ".repeat(Math.max(0, 50 - newBranchData.branch.name.length - newBranchData.branch.id.length - 3))} │
 │ Parent Branch:  ${productionBranch.name.padEnd(50)} │
-│ Expires:        ${expirationDate.toLocaleDateString()} (14 days)${' '.repeat(Math.max(0, 50 - expirationDate.toLocaleDateString().length - 10))} │
-│ Database URL:   Updated in .env file${' '.repeat(27)} │
-│ Connection:     ${(poolerHost ? 'Pooled connection enabled' : 'Direct connection').padEnd(50)} │
+│ Expires:        ${expirationDate.toLocaleDateString()} (14 days)${" ".repeat(Math.max(0, 50 - expirationDate.toLocaleDateString().length - 10))} │
+│ Database URL:   Updated in .env file${" ".repeat(27)} │
+│ Connection:     ${(poolerHost ? "Pooled connection enabled" : "Direct connection").padEnd(50)} │
 └───────────────────────────────────────────────────────────────────────────┘
 
 💡 Next steps:
@@ -201,9 +239,10 @@ async function initNewFeature(): Promise<void> {
    2. Start developing your feature
    3. The database branch will automatically be deleted in 2 weeks
     `);
-
   } catch (error) {
-    console.error(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
+    );
     console.error("\n🔍 Troubleshooting:");
     console.error("   • Ensure NEON_API_KEY and NEON_PROJECT_ID are set");
     console.error("   • Check that you have access to the Neon project");

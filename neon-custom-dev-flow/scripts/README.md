@@ -21,7 +21,7 @@ DATABASE_URL="your_current_database_connection_string"
 
 ### Getting Your Neon Credentials
 
-1. **NEON_API_KEY**: 
+1. **NEON_API_KEY**:
    - Go to [Neon Console Settings → API Keys](https://console.neon.tech/app/settings/api-keys)
    - Click "Generate new API key"
    - Copy the generated key
@@ -38,6 +38,7 @@ DATABASE_URL="your_current_database_connection_string"
 Creates a new git branch and associated Neon database branch for feature development.
 
 **Usage:**
+
 ```bash
 # Provide branch name explicitly
 bun run init-new-feature andrelandgraf/feature-name
@@ -48,6 +49,7 @@ bun run init-new-feature
 ```
 
 **What it does:**
+
 1. ✅ Creates and checks out a new git branch from `main`
 2. 🔍 Finds your production database branch in Neon
 3. 🎋 Creates a new Neon database branch with:
@@ -58,6 +60,7 @@ bun run init-new-feature
 5. 🎉 Provides summary and next steps
 
 **Features:**
+
 - **Automatic cleanup**: Database branches expire after 2 weeks
 - **Pooled connections**: Uses Neon's connection pooling for better performance
 - **Git integration**: Automatically manages git branches
@@ -65,6 +68,7 @@ bun run init-new-feature
 - **Error handling**: Comprehensive error messages and troubleshooting tips
 
 **Example Output:**
+
 ```
 🚀 Initializing new feature branch: andrelandgraf/user-authentication
 📦 Creating git branch from main...
@@ -99,27 +103,34 @@ bun run init-new-feature
 ### Common Issues
 
 1. **Missing API Key Error**
+
    ```
    ❌ NEON_API_KEY environment variable is required
    ```
+
    - Solution: Add your Neon API key to `.env` file
 
 2. **Missing Project ID Error**
+
    ```
    ❌ NEON_PROJECT_ID environment variable is required
    ```
+
    - Solution: Add your Neon project ID to `.env` file
 
 3. **Production Branch Not Found**
+
    ```
    Production branch not found. Looking for branch named 'production', 'main', or the default branch.
    ```
+
    - Solution: Ensure you have a branch named 'production', 'main', or set a default branch in your Neon project
 
 4. **Git Branch Already Exists**
    ```
    fatal: A branch named 'feature-name' already exists.
    ```
+
    - Solution: Choose a different branch name or delete the existing branch first
 
 ### Best Practices
