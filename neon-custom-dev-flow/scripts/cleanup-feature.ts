@@ -84,7 +84,7 @@ async function cleanupFeature(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`🧹 Cleaning up feature branch: ${branchName}`);
+  console.log(`🧹 Cleaning up feature branch: ${branchName} (Neon branch: ${branchName.replace(/[^a-zA-Z0-9-]/g, "-")})`);
 
   try {
     // Step 1: Get all Neon branches to find the feature branch and development branch
@@ -108,20 +108,21 @@ async function cleanupFeature(): Promise<void> {
 
     const branchesData: ListBranchesResponse = await branchesResponse.json();
 
-    // Find the feature branch to delete (exact name match only)
+    // Find the feature branch to delete (using same sanitization logic as init script)
+    const sanitizedBranchName = branchName.replace(/[^a-zA-Z0-9-]/g, "-");
     const featureBranch = branchesData.branches.find(
-      (branch) => branch.name === branchName,
+      (branch) => branch.name === sanitizedBranchName,
     );
 
     if (!featureBranch) {
-      console.warn(`⚠️  Database branch not found for '${branchName}'`);
+      console.warn(`⚠️  Database branch not found for '${sanitizedBranchName}' (from git branch '${branchName}')`);
       console.log("Available branches:");
       branchesData.branches.forEach((branch) => {
         console.log(`   • ${branch.name} (${branch.id})`);
       });
     } else {
       console.log(
-        `✅ Found feature database branch: ${featureBranch.name} (${featureBranch.id})`,
+        `✅ Found feature database branch: ${featureBranch.name} (${featureBranch.id}) from git branch '${branchName}'`,
       );
 
       // Step 2: Delete the feature branch
