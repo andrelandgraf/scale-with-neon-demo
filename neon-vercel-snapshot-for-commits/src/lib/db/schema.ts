@@ -6,4 +6,5 @@ export const contactsTable = pgTable("contacts", {
   email: text("email").notNull(),
   role: text("role"), // Optional field
   company: text("company"), // Optional field
+  tel: text("tel"), // Optional field
 });

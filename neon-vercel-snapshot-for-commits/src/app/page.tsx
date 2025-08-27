@@ -8,6 +8,7 @@ interface Contact {
   email: string;
   role?: string | null;
   company?: string | null;
+  tel?: string | null;
 }
 
 export default function Home() {
@@ -21,6 +22,7 @@ export default function Home() {
     email: "",
     role: "",
     company: "",
+    tel: "",
   });
 
   // Fetch contacts
@@ -48,7 +50,7 @@ export default function Home() {
       });
       if (!response.ok) throw new Error("Failed to add contact");
       await fetchContacts();
-      setFormData({ name: "", email: "", role: "", company: "" });
+      setFormData({ name: "", email: "", role: "", company: "", tel: "" });
       setIsAddingContact(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -66,7 +68,7 @@ export default function Home() {
       });
       if (!response.ok) throw new Error("Failed to update contact");
       await fetchContacts();
-      setFormData({ name: "", email: "", role: "", company: "" });
+      setFormData({ name: "", email: "", role: "", company: "", tel: "" });
       setEditingContact(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -94,6 +96,7 @@ export default function Home() {
       email: contact.email,
       role: contact.role || "",
       company: contact.company || "",
+      tel: contact.tel || "",
     });
     setIsAddingContact(false);
   };
@@ -101,13 +104,13 @@ export default function Home() {
   const startAdd = () => {
     setIsAddingContact(true);
     setEditingContact(null);
-    setFormData({ name: "", email: "", role: "", company: "" });
+    setFormData({ name: "", email: "", role: "", company: "", tel: "" });
   };
 
   const cancelForm = () => {
     setIsAddingContact(false);
     setEditingContact(null);
-    setFormData({ name: "", email: "", role: "", company: "" });
+    setFormData({ name: "", email: "", role: "", company: "", tel: "" });
   };
 
   useEffect(() => {
@@ -205,6 +208,20 @@ export default function Home() {
                     placeholder="Enter company (optional)"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.tel}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tel: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter phone number (optional)"
+                  />
+                </div>
               </div>
               <div className="flex gap-2 mt-4">
                 <button
@@ -255,6 +272,9 @@ export default function Home() {
                         Company
                       </th>
                       <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white text-left">
+                        Phone
+                      </th>
+                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white text-left">
                         Actions
                       </th>
                     </tr>
@@ -276,6 +296,9 @@ export default function Home() {
                         </td>
                         <td className="py-3 text-sm text-gray-500 dark:text-gray-400">
                           {contact.company || "-"}
+                        </td>
+                        <td className="py-3 text-sm text-gray-500 dark:text-gray-400">
+                          {contact.tel || "-"}
                         </td>
                         <td className="py-3">
                           <div className="flex gap-2">

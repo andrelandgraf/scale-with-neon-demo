@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, role, company } = body;
+    const { name, email, role, company, tel } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
     // Add optional fields if provided
     if (role) contactData.role = role;
     if (company) contactData.company = company;
+    if (tel) contactData.tel = tel;
 
     const [newContact] = await db
       .insert(contactsTable)
