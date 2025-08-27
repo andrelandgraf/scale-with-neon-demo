@@ -39,7 +39,12 @@ Creates a new git branch and associated Neon database branch for feature develop
 
 **Usage:**
 ```bash
+# Provide branch name explicitly
 bun run init-new-feature andrelandgraf/feature-name
+
+# Or checkout a feature branch first and run without arguments
+git checkout -b andrelandgraf/feature-name
+bun run init-new-feature
 ```
 
 **What it does:**

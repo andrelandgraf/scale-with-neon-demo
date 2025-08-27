@@ -13,13 +13,31 @@ import type {
 } from "./types";
 
 async function initNewFeature(): Promise<void> {
-  // Get branch name from command line arguments
-  const branchName = process.argv[2];
+  // Get branch name from command line arguments or infer from current git branch
+  let branchName = process.argv[2];
   
   if (!branchName) {
-    console.error("❌ Please provide a branch name: bun run init-new-feature <branch-name>");
-    console.error("   Example: bun run init-new-feature andrelandgraf/feature-name");
-    process.exit(1);
+    // Try to infer from current git branch
+    try {
+      const result = await $`git branch --show-current`.text();
+      const currentBranch = result.trim();
+      
+      if (currentBranch && currentBranch !== 'main' && currentBranch !== 'master') {
+        branchName = currentBranch;
+        console.log(`🔍 Using current git branch: ${branchName}`);
+      } else {
+        console.error("❌ Please provide a branch name or switch to a feature branch:");
+        console.error("   Usage: bun run init-new-feature [branch-name]");
+        console.error("   Example: bun run init-new-feature andrelandgraf/feature-name");
+        console.error("   Or checkout a feature branch first and run without arguments");
+        process.exit(1);
+      }
+    } catch (error) {
+      console.error("❌ Could not determine current git branch. Please provide a branch name:");
+      console.error("   Usage: bun run init-new-feature <branch-name>");
+      console.error("   Example: bun run init-new-feature andrelandgraf/feature-name");
+      process.exit(1);
+    }
   }
 
   // Validate required environment variables
@@ -41,12 +59,19 @@ async function initNewFeature(): Promise<void> {
   console.log(`🚀 Initializing new feature branch: ${branchName}`);
 
   try {
-    // Step 1: Create and checkout new git branch from main
-    console.log("📦 Creating git branch from main...");
-    await $`git checkout main`;
-    await $`git pull origin main`;
-    await $`git checkout -b ${branchName}`;
-    console.log(`✅ Git branch '${branchName}' created and checked out`);
+    // Step 1: Ensure we're on the correct git branch
+    const currentBranch = await $`git branch --show-current`.text();
+    const currentBranchName = currentBranch.trim();
+    
+    if (currentBranchName === branchName) {
+      console.log(`✅ Already on branch '${branchName}'`);
+    } else {
+      console.log("📦 Creating git branch from main...");
+      await $`git checkout main`;
+      await $`git pull origin main`;
+      await $`git checkout -b ${branchName}`;
+      console.log(`✅ Git branch '${branchName}' created and checked out`);
+    }
 
     // Step 2: Get all Neon branches to find production branch
     console.log("🔍 Finding production database branch...");
