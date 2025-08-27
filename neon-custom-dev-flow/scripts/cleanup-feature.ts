@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 
 import { $ } from "bun";
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { join } from "path";
 import type { ListBranchesResponse } from "./types";
 
 async function cleanupFeature(): Promise<void> {
@@ -46,6 +48,24 @@ async function cleanupFeature(): Promise<void> {
     }
   }
 
+  // Add protection against deleting protected branches
+  const protectedBranches = [
+    "main",
+    "master",
+    "development",
+    "dev",
+    "develop",
+    "production",
+    "prod",
+  ];
+  if (protectedBranches.includes(branchName.toLowerCase())) {
+    console.error(
+      `❌ Cannot cleanup protected branch '${branchName}'. Protected branches: ${protectedBranches.join(", ")}`,
+    );
+    console.error("   This script is only for cleaning up feature branches.");
+    process.exit(1);
+  }
+
   // Validate required environment variables
   const neonApiKey = process.env.NEON_API_KEY;
   const projectId = process.env.NEON_PROJECT_ID;
@@ -88,17 +108,13 @@ async function cleanupFeature(): Promise<void> {
 
     const branchesData: ListBranchesResponse = await branchesResponse.json();
 
-    // Find the feature branch to delete (sanitized name matching the creation logic)
-    const sanitizedBranchName = branchName.replace(/[^a-zA-Z0-9-]/g, "-");
+    // Find the feature branch to delete (exact name match only)
     const featureBranch = branchesData.branches.find(
-      (branch) =>
-        branch.name === sanitizedBranchName || branch.name === branchName,
+      (branch) => branch.name === branchName,
     );
 
     if (!featureBranch) {
-      console.warn(
-        `⚠️  Database branch not found for '${branchName}' (also tried '${sanitizedBranchName}')`,
-      );
+      console.warn(`⚠️  Database branch not found for '${branchName}'`);
       console.log("Available branches:");
       branchesData.branches.forEach((branch) => {
         console.log(`   • ${branch.name} (${branch.id})`);
@@ -150,86 +166,92 @@ async function cleanupFeature(): Promise<void> {
       branchesData.branches.forEach((branch) => {
         console.log(`   • ${branch.name} (${branch.id})`);
       });
-      console.log("💡 You may need to manually update your .env DATABASE_URL");
-      return;
-    }
-
-    console.log(
-      `✅ Found development branch: ${developmentBranch.name} (${developmentBranch.id})`,
-    );
-
-    // Step 4: Attempt to get connection details for development branch
-    console.log(
-      "🔗 Attempting to update with development branch connection...",
-    );
-
-    let databaseUrl = "";
-    let shouldUpdateEnv = false;
-
-    try {
-      // Get the endpoints for the development branch
-      const endpointsResponse = await fetch(
-        `https://console.neon.tech/api/v2/projects/${projectId}/branches/${developmentBranch.id}/endpoints`,
-        {
-          headers: {
-            Accept: "application/json",
-            Authorization: `Bearer ${neonApiKey}`,
-          },
-        },
-      );
-
-      if (endpointsResponse.ok) {
-        const endpointsData = await endpointsResponse.json();
-        const endpoint = endpointsData.endpoints?.[0];
-
-        if (endpoint) {
-          // For simplicity, we'll inform the user to manually update the connection
-          // since getting the password requires additional API calls that might fail
-          console.log(`✅ Found development endpoint: ${endpoint.host}`);
-          console.log(
-            "💡 Please update your .env DATABASE_URL with the development branch connection:",
-          );
-          console.log(`   Host: ${endpoint.host}`);
-          console.log(
-            "   Get the full connection string from Neon Console → Development Branch → Connect",
-          );
-          shouldUpdateEnv = false;
-        }
-      }
-    } catch (error) {
-      console.warn(
-        "⚠️  Could not get development branch connection details automatically",
-      );
-    }
-
-    if (!shouldUpdateEnv) {
       console.log(
-        "⚠️  Skipping automatic .env update - please manually update DATABASE_URL",
+        "💡 Skipping .env update - you may need to manually update your DATABASE_URL",
       );
-      console.log("   1. Go to Neon Console");
-      console.log("   2. Select your development branch");
-      console.log("   3. Click 'Connect' to get the connection string");
+    } else {
       console.log(
-        "   4. Update your .env DATABASE_URL with the development connection",
+        `✅ Found development branch: ${developmentBranch.name} (${developmentBranch.id})`,
       );
-    }
 
-    // Note: .env update is skipped - manual update required
+      // Step 4: Update .env DATABASE_URL to use development branch
+      console.log("🔄 Updating .env DATABASE_URL to use development branch...");
 
-    // Step 5: Optional git cleanup
-    const shouldDeleteGitBranch =
-      process.argv.includes("--delete-git-branch") ||
-      process.argv.includes("-g");
-
-    if (shouldDeleteGitBranch) {
       try {
-        console.log("🗑️  Cleaning up git branch...");
-        await $`git checkout main`;
+        const envPath = join(process.cwd(), ".env");
+        let envUpdated = false;
+
+        if (existsSync(envPath)) {
+          const envContent = readFileSync(envPath, "utf-8");
+          const envLines = envContent.split("\n");
+
+          // Look for DATABASE_URL and update it to point to development branch
+          for (let i = 0; i < envLines.length; i++) {
+            const line = envLines[i].trim();
+            if (line.startsWith("DATABASE_URL=")) {
+              // Extract the current URL and replace the branch name with 'development'
+              const currentUrl = line.substring("DATABASE_URL=".length);
+              // Replace branch name in the URL with 'development'
+              // URL format is typically: postgresql://user:pass@host/dbname?branch=branchname
+              const updatedUrl = currentUrl.replace(
+                /([?&]branch=)[^&"']+/,
+                `$1development`,
+              );
+              envLines[i] = `DATABASE_URL=${updatedUrl}`;
+              envUpdated = true;
+              console.log(`✅ Updated DATABASE_URL to use development branch`);
+              break;
+            }
+          }
+
+          if (envUpdated) {
+            writeFileSync(envPath, envLines.join("\n"));
+            console.log(`✅ .env file updated successfully`);
+          } else {
+            console.warn("⚠️  DATABASE_URL not found in .env file");
+            console.log(
+              "💡 Please manually add DATABASE_URL with development branch connection",
+            );
+          }
+        } else {
+          console.warn("⚠️  .env file not found");
+          console.log(
+            "💡 Please create .env file with DATABASE_URL pointing to development branch",
+          );
+        }
+      } catch (error) {
+        console.warn(`⚠️  Could not update .env file: ${error}`);
+        console.log(
+          "💡 Please manually update DATABASE_URL to use development branch",
+        );
+      }
+    }
+
+    // Step 5: Git cleanup (always performed)
+    try {
+      console.log("🔄 Switching to main branch and cleaning up git branch...");
+      await $`git checkout main`;
+      console.log("✅ Switched to main branch");
+
+      try {
         await $`git branch -D ${branchName}`;
         console.log(`✅ Git branch '${branchName}' deleted`);
       } catch (error) {
-        console.warn(`⚠️  Could not delete git branch: ${error}`);
+        // Try regular delete if force delete fails
+        try {
+          await $`git branch -d ${branchName}`;
+          console.log(`✅ Git branch '${branchName}' deleted`);
+        } catch (error2) {
+          console.warn(
+            `⚠️  Could not delete git branch '${branchName}': ${error2}`,
+          );
+          console.log(
+            "💡 You may need to delete it manually if it has unmerged changes",
+          );
+        }
       }
+    } catch (error) {
+      console.warn(`⚠️  Could not switch to main branch: ${error}`);
     }
 
     // Step 6: Success message
@@ -237,17 +259,13 @@ async function cleanupFeature(): Promise<void> {
     console.log(`
 ┌─ Summary ─────────────────────────────────────────────────────────────────┐
 │ Feature Branch: ${branchName.padEnd(50)} │
-│ Database:       ${featureBranch ? "Deleted ✅" : "Not found ⚠️ ".padEnd(50)} │
-│ Current DB:     development (${developmentBranch.name})${" ".repeat(Math.max(0, 50 - developmentBranch.name.length - 15))} │
-│ .env Updated:   Manual update required${" ".repeat(26)} │
-│ Git Branch:     ${shouldDeleteGitBranch ? "Deleted ✅" : "Kept (use -g to delete)".padEnd(50)} │
+│ Database:       ${featureBranch ? "Deleted ✅" : "Not found ⚠️ (skipped)".padEnd(50)} │
+│ Current DB:     ${developmentBranch ? `development (${developmentBranch.name})` : "development branch not found".padEnd(50)} │
+│ .env Updated:   ${developmentBranch ? "Attempted ✅" : "Skipped ⚠️ ".padEnd(50)} │
+│ Git Branch:     Deleted ✅ (switched to main)${" ".repeat(17)} │
 └───────────────────────────────────────────────────────────────────────────┘
 
-💡 Next steps:
-   ${shouldDeleteGitBranch ? "1. You're back on main branch" : "1. Switch to main: git checkout main"}
-   2. Update .env DATABASE_URL with development branch connection
-   3. Continue with other features
-    `);
+`);
   } catch (error) {
     console.error(
       `❌ Error: ${error instanceof Error ? error.message : String(error)}`,

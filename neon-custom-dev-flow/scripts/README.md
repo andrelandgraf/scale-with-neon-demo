@@ -127,6 +127,7 @@ bun run init-new-feature
    - Solution: Ensure you have a branch named 'production', 'main', or set a default branch in your Neon project
 
 4. **Git Branch Already Exists**
+
    ```
    fatal: A branch named 'feature-name' already exists.
    ```
