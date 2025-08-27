@@ -10,7 +10,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { name, email } = body;
+    const { name, email, role, company } = body;
     const { id } = await params;
 
     if (!name || !email) {
@@ -20,9 +20,15 @@ export async function PUT(
       );
     }
 
+    const updateData: any = { name, email };
+
+    // Add optional fields (including null values to clear them)
+    updateData.role = role || null;
+    updateData.company = company || null;
+
     const [updatedContact] = await db
       .update(contactsTable)
-      .set({ name, email })
+      .set(updateData)
       .where(eq(contactsTable.id, id))
       .returning();
 

@@ -20,7 +20,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email } = body;
+    const { name, email, role, company } = body;
 
     if (!name || !email) {
       return NextResponse.json(
@@ -29,9 +29,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const contactData: any = { name, email };
+
+    // Add optional fields if provided
+    if (role) contactData.role = role;
+    if (company) contactData.company = company;
+
     const [newContact] = await db
       .insert(contactsTable)
-      .values({ name, email })
+      .values(contactData)
       .returning();
 
     return NextResponse.json({ contact: newContact }, { status: 201 });

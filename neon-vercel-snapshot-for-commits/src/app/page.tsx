@@ -6,6 +6,8 @@ interface Contact {
   id: string;
   name: string;
   email: string;
+  role?: string | null;
+  company?: string | null;
 }
 
 export default function Home() {
@@ -14,7 +16,12 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isAddingContact, setIsAddingContact] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [formData, setFormData] = useState({ name: "", email: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    role: "",
+    company: "",
+  });
 
   // Fetch contacts
   const fetchContacts = async () => {
@@ -41,7 +48,7 @@ export default function Home() {
       });
       if (!response.ok) throw new Error("Failed to add contact");
       await fetchContacts();
-      setFormData({ name: "", email: "" });
+      setFormData({ name: "", email: "", role: "", company: "" });
       setIsAddingContact(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -59,7 +66,7 @@ export default function Home() {
       });
       if (!response.ok) throw new Error("Failed to update contact");
       await fetchContacts();
-      setFormData({ name: "", email: "" });
+      setFormData({ name: "", email: "", role: "", company: "" });
       setEditingContact(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -82,20 +89,25 @@ export default function Home() {
 
   const startEdit = (contact: Contact) => {
     setEditingContact(contact);
-    setFormData({ name: contact.name, email: contact.email });
+    setFormData({
+      name: contact.name,
+      email: contact.email,
+      role: contact.role || "",
+      company: contact.company || "",
+    });
     setIsAddingContact(false);
   };
 
   const startAdd = () => {
     setIsAddingContact(true);
     setEditingContact(null);
-    setFormData({ name: "", email: "" });
+    setFormData({ name: "", email: "", role: "", company: "" });
   };
 
   const cancelForm = () => {
     setIsAddingContact(false);
     setEditingContact(null);
-    setFormData({ name: "", email: "" });
+    setFormData({ name: "", email: "", role: "", company: "" });
   };
 
   useEffect(() => {
@@ -137,7 +149,7 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Name
+                    Name *
                   </label>
                   <input
                     type="text"
@@ -147,11 +159,12 @@ export default function Home() {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter name"
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email
+                    Email *
                   </label>
                   <input
                     type="email"
@@ -161,6 +174,35 @@ export default function Home() {
                     }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Enter email"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Role
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.role}
+                    onChange={(e) =>
+                      setFormData({ ...formData, role: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter role (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Company
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.company}
+                    onChange={(e) =>
+                      setFormData({ ...formData, company: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter company (optional)"
                   />
                 </div>
               </div>
@@ -200,13 +242,19 @@ export default function Home() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-gray-200 dark:border-gray-700">
-                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white text-left">
                         Name
                       </th>
-                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white text-left">
                         Email
                       </th>
-                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white text-left">
+                        Role
+                      </th>
+                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white text-left">
+                        Company
+                      </th>
+                      <th className="pb-3 text-sm font-semibold text-gray-900 dark:text-white text-left">
                         Actions
                       </th>
                     </tr>
@@ -222,6 +270,12 @@ export default function Home() {
                         </td>
                         <td className="py-3 text-sm text-gray-900 dark:text-white">
                           {contact.email}
+                        </td>
+                        <td className="py-3 text-sm text-gray-500 dark:text-gray-400">
+                          {contact.role || "-"}
+                        </td>
+                        <td className="py-3 text-sm text-gray-500 dark:text-gray-400">
+                          {contact.company || "-"}
                         </td>
                         <td className="py-3">
                           <div className="flex gap-2">
