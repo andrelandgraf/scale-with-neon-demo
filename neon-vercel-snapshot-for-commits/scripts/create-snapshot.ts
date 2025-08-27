@@ -91,9 +91,9 @@ async function createSnapshot(commitId: string): Promise<void> {
     const snapshotName = `prod-${commitId}`;
     console.log(`📸 Creating snapshot: ${snapshotName}...`);
 
-    // Calculate expiration date (30 days from now)
+    // Calculate expiration date (4 months from now)
     const expirationDate = new Date();
-    expirationDate.setDate(expirationDate.getDate() + 30);
+    expirationDate.setMonth(expirationDate.getMonth() + 4);
     const expiresAt = expirationDate.toISOString();
 
     const createSnapshotRequest: CreateSnapshotRequest = {
@@ -141,7 +141,7 @@ async function createSnapshot(commitId: string): Promise<void> {
     console.log(`   bun scripts/test-commit-id.ts ${commitId}`);
     
     console.log("\n💡 This snapshot represents the production database state for commit:", commitId);
-    console.log("   It will automatically expire in 30 days to save storage costs.");
+    console.log("   It will automatically expire in 4 months to save storage costs.");
 
   } catch (error) {
     console.error(`❌ Error creating snapshot: ${error instanceof Error ? error.message : String(error)}`);

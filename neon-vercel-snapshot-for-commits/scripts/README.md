@@ -57,14 +57,14 @@ bun scripts/create-snapshot.ts abc123f
 
 1. 🔍 Finds your production database branch (looks for "production", "main", or default branch)
 2. 📸 Creates a snapshot with naming convention: `prod-<commit-id>`
-3. ⏰ Sets automatic expiration to 30 days to manage storage costs
+3. ⏰ Sets automatic expiration to 4 months to manage storage costs
 4. 💾 Captures the exact state of your production database at commit time
 
 **Features:**
 
 - **Automated naming**: Uses `prod-<commit-id>` convention for easy identification
 - **Smart branch detection**: Automatically finds production branch
-- **Cost management**: 30-day expiration to prevent storage bloat
+- **Cost management**: 4-month expiration to prevent storage bloat
 - **GitHub Action ready**: Designed for CI/CD integration
 
 ### `test-commit`
@@ -84,15 +84,17 @@ bun scripts/test-commit-id.ts abc123f
 
 1. 🔍 Finds the snapshot for the specified commit (`prod-<commit-id>`)
 2. 🎋 Creates a new test branch from the snapshot using multi-step restore
-3. 🔗 Gets connection details for the test branch
-4. 📝 Updates your `.env` file with the test branch DATABASE_URL
-5. 💾 Backs up your original DATABASE_URL as ORIGINAL_DATABASE_URL
+3. ⏰ Sets 2-week expiration on the test branch for automatic cleanup
+4. 🔗 Gets connection details for the test branch
+5. 📝 Updates your `.env` file with the test branch DATABASE_URL
+6. 💾 Backs up your original DATABASE_URL as ORIGINAL_DATABASE_URL
 
 **Features:**
 
 - **Safe testing**: Non-destructive testing against historical database states
 - **Automatic backup**: Preserves original DATABASE_URL
 - **Multi-step restore**: Creates branch without finalizing for safe testing
+- **Automatic cleanup**: Test branches expire after 2 weeks
 - **Clear documentation**: Shows exactly what was changed and how to revert
 
 **Example workflow:**

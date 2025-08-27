@@ -163,6 +163,7 @@ export interface RestoreSnapshotRequest {
   name?: string;
   finalize_restore?: boolean;
   target_branch_id?: string;
+  expire_at?: string;
 }
 
 export interface RestoreSnapshotResponse {

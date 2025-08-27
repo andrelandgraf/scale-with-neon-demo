@@ -88,9 +88,15 @@ async function testCommitId(commitId: string): Promise<void> {
     const testBranchName = `test-${commitId}`;
     console.log(`🎋 Creating test branch: ${testBranchName}...`);
 
+    // Calculate expiration date (2 weeks from now)
+    const expirationDate = new Date();
+    expirationDate.setDate(expirationDate.getDate() + 14);
+    const expireAt = expirationDate.toISOString();
+
     const restoreRequest: RestoreSnapshotRequest = {
       name: testBranchName,
       finalize_restore: false, // Multi-step restore - don't finalize yet
+      expire_at: expireAt,
     };
 
     const restoreResponse = await fetch(
