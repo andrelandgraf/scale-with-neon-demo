@@ -128,6 +128,48 @@ export interface CreateBranchRequest {
   };
 }
 
+// Snapshot-related types
+export interface NeonSnapshot {
+  id: string;
+  project_id: string;
+  branch_id: string;
+  name: string;
+  created_at: string;
+  expires_at: string;
+  status: "active" | "expired" | "creating" | "error";
+  size_bytes?: number;
+  logical_size?: number;
+  timestamp?: string;
+  lsn?: string;
+}
+
+export interface CreateSnapshotRequest {
+  name: string;
+  timestamp?: string;
+  lsn?: string;
+  expires_at?: string;
+}
+
+export interface CreateSnapshotResponse {
+  snapshot: NeonSnapshot;
+  operations: NeonOperation[];
+}
+
+export interface ListSnapshotsResponse {
+  snapshots: NeonSnapshot[];
+}
+
+export interface RestoreSnapshotRequest {
+  name?: string;
+  finalize_restore?: boolean;
+  target_branch_id?: string;
+}
+
+export interface RestoreSnapshotResponse {
+  branch: NeonBranch;
+  operations: NeonOperation[];
+}
+
 // API error response type
 export interface NeonApiError {
   message: string;

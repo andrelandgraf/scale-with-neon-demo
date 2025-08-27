@@ -17,6 +17,13 @@ NEON_PROJECT_ID=your_neon_project_id_here
 
 # Database URL (will be automatically updated by scripts)
 DATABASE_URL="your_current_database_connection_string"
+
+# Backup of original DATABASE_URL (automatically managed by test-commit script)
+# ORIGINAL_DATABASE_URL=your_previous_database_url_here
+
+# Optional: Additional environment variables for your application
+# NODE_ENV=development
+# NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ### Getting Your Neon Credentials
@@ -32,6 +39,77 @@ DATABASE_URL="your_current_database_connection_string"
    - Copy the Project ID (format: `dry-heart-13671059`)
 
 ## Available Scripts
+
+### `create-snapshot`
+
+Creates a snapshot of your production database for a specific commit ID. This is designed to be run automatically in a GitHub action after every merge to production.
+
+**Usage:**
+
+```bash
+# Create a snapshot for a specific commit
+bun run create-snapshot abc123f
+# or directly
+bun scripts/create-snapshot.ts abc123f
+```
+
+**What it does:**
+
+1. 🔍 Finds your production database branch (looks for "production", "main", or default branch)
+2. 📸 Creates a snapshot with naming convention: `prod-<commit-id>`
+3. ⏰ Sets automatic expiration to 30 days to manage storage costs
+4. 💾 Captures the exact state of your production database at commit time
+
+**Features:**
+
+- **Automated naming**: Uses `prod-<commit-id>` convention for easy identification
+- **Smart branch detection**: Automatically finds production branch
+- **Cost management**: 30-day expiration to prevent storage bloat
+- **GitHub Action ready**: Designed for CI/CD integration
+
+### `test-commit`
+
+Restores your database to the state it was in at a specific commit by creating a test branch from a snapshot and updating your local `.env` file.
+
+**Usage:**
+
+```bash
+# Test against database state for a specific commit
+bun run test-commit abc123f
+# or directly  
+bun scripts/test-commit-id.ts abc123f
+```
+
+**What it does:**
+
+1. 🔍 Finds the snapshot for the specified commit (`prod-<commit-id>`)
+2. 🎋 Creates a new test branch from the snapshot using multi-step restore
+3. 🔗 Gets connection details for the test branch
+4. 📝 Updates your `.env` file with the test branch DATABASE_URL
+5. 💾 Backs up your original DATABASE_URL as ORIGINAL_DATABASE_URL
+
+**Features:**
+
+- **Safe testing**: Non-destructive testing against historical database states
+- **Automatic backup**: Preserves original DATABASE_URL
+- **Multi-step restore**: Creates branch without finalizing for safe testing
+- **Clear documentation**: Shows exactly what was changed and how to revert
+
+**Example workflow:**
+
+```bash
+# 1. Create snapshot when deploying to production (in CI/CD)
+bun run create-snapshot $(git rev-parse --short HEAD)
+
+# 2. Later, when investigating an issue
+bun run test-commit abc123f
+
+# 3. Test your application against the historical database state
+npm run dev
+
+# 4. When done testing, restore original DATABASE_URL
+# (Check ORIGINAL_DATABASE_URL in .env and restore it manually)
+```
 
 ### `init-new-feature`
 
