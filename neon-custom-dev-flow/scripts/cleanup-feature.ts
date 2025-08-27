@@ -166,65 +166,63 @@ async function cleanupFeature(): Promise<void> {
       branchesData.branches.forEach((branch) => {
         console.log(`   • ${branch.name} (${branch.id})`);
       });
-      console.log(
-        "💡 Skipping .env update - you may need to manually update your DATABASE_URL",
-      );
+      console.log("💡 You'll need to manually update your .env DATABASE_URL");
     } else {
       console.log(
         `✅ Found development branch: ${developmentBranch.name} (${developmentBranch.id})`,
       );
 
-      // Step 4: Update .env DATABASE_URL to use development branch
-      console.log("🔄 Updating .env DATABASE_URL to use development branch...");
+      // Step 4: Get development branch connection details
+      console.log("🔄 Getting development branch connection details...");
 
       try {
-        const envPath = join(process.cwd(), ".env");
-        let envUpdated = false;
+        // Get the endpoints for the development branch
+        const endpointsResponse = await fetch(
+          `https://console.neon.tech/api/v2/projects/${projectId}/branches/${developmentBranch.id}/endpoints`,
+          {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${neonApiKey}`,
+            },
+          },
+        );
 
-        if (existsSync(envPath)) {
-          const envContent = readFileSync(envPath, "utf-8");
-          const envLines = envContent.split("\n");
+        if (endpointsResponse.ok) {
+          const endpointsData = await endpointsResponse.json();
+          const endpoint = endpointsData.endpoints?.[0];
 
-          // Look for DATABASE_URL and update it to point to development branch
-          for (let i = 0; i < envLines.length; i++) {
-            const line = envLines[i].trim();
-            if (line.startsWith("DATABASE_URL=")) {
-              // Extract the current URL and replace the branch name with 'development'
-              const currentUrl = line.substring("DATABASE_URL=".length);
-              // Replace branch name in the URL with 'development'
-              // URL format is typically: postgresql://user:pass@host/dbname?branch=branchname
-              const updatedUrl = currentUrl.replace(
-                /([?&]branch=)[^&"']+/,
-                `$1development`,
-              );
-              envLines[i] = `DATABASE_URL=${updatedUrl}`;
-              envUpdated = true;
-              console.log(`✅ Updated DATABASE_URL to use development branch`);
-              break;
-            }
-          }
-
-          if (envUpdated) {
-            writeFileSync(envPath, envLines.join("\n"));
-            console.log(`✅ .env file updated successfully`);
-          } else {
-            console.warn("⚠️  DATABASE_URL not found in .env file");
+          if (endpoint) {
+            console.log(`✅ Found development endpoint: ${endpoint.host}`);
+            console.log("💡 Please update your .env DATABASE_URL manually:");
+            console.log(`   Host: ${endpoint.host}`);
+            console.log("   Get the complete connection string from:");
             console.log(
-              "💡 Please manually add DATABASE_URL with development branch connection",
+              `   Neon Console → ${developmentBranch.name} branch → Connect`,
             );
+            console.log("");
+            console.log("   Your new DATABASE_URL should look like:");
+            console.log(
+              `   postgresql://username:password@${endpoint.host}/neondb?sslmode=require`,
+            );
+          } else {
+            console.warn("⚠️  No endpoints found for development branch");
           }
         } else {
-          console.warn("⚠️  .env file not found");
-          console.log(
-            "💡 Please create .env file with DATABASE_URL pointing to development branch",
-          );
+          console.warn("⚠️  Could not fetch development branch endpoints");
         }
       } catch (error) {
-        console.warn(`⚠️  Could not update .env file: ${error}`);
-        console.log(
-          "💡 Please manually update DATABASE_URL to use development branch",
+        console.warn(
+          `⚠️  Error getting development connection details: ${error}`,
         );
       }
+
+      console.log("💡 Manual .env update required:");
+      console.log("   1. Go to Neon Console");
+      console.log(`   2. Select the '${developmentBranch.name}' branch`);
+      console.log("   3. Click 'Connect' to copy the connection string");
+      console.log(
+        "   4. Update your .env DATABASE_URL with the development connection",
+      );
     }
 
     // Step 5: Git cleanup (always performed)
@@ -261,7 +259,7 @@ async function cleanupFeature(): Promise<void> {
 │ Feature Branch: ${branchName.padEnd(50)} │
 │ Database:       ${featureBranch ? "Deleted ✅" : "Not found ⚠️ (skipped)".padEnd(50)} │
 │ Current DB:     ${developmentBranch ? `development (${developmentBranch.name})` : "development branch not found".padEnd(50)} │
-│ .env Updated:   ${developmentBranch ? "Attempted ✅" : "Skipped ⚠️ ".padEnd(50)} │
+│ .env Updated:   Manual update required ⚠️${" ".repeat(20)} │
 │ Git Branch:     Deleted ✅ (switched to main)${" ".repeat(17)} │
 └───────────────────────────────────────────────────────────────────────────┘
 
