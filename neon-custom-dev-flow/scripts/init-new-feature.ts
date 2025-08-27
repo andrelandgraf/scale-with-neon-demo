@@ -87,8 +87,8 @@ async function initNewFeature(): Promise<void> {
       console.log(`✅ Git branch '${branchName}' created and checked out`);
     }
 
-    // Step 2: Get all Neon branches to find production branch
-    console.log("🔍 Finding production database branch...");
+    // Step 2: Get all Neon branches to find development branch
+    console.log("🔍 Finding development database branch...");
     const branchesResponse = await fetch(
       `https://console.neon.tech/api/v2/projects/${projectId}/branches`,
       {
@@ -107,21 +107,21 @@ async function initNewFeature(): Promise<void> {
     }
 
     const branchesData: ListBranchesResponse = await branchesResponse.json();
-    const productionBranch = branchesData.branches.find(
+    const developmentBranch = branchesData.branches.find(
       (branch) =>
-        branch.name === "production" ||
-        branch.name === "main" ||
-        branch.default === true,
+        branch.name === "development" ||
+        branch.name === "dev" ||
+        branch.name === "develop",
     );
 
-    if (!productionBranch) {
+    if (!developmentBranch) {
       throw new Error(
-        "Production branch not found. Looking for branch named 'production', 'main', or the default branch.",
+        "Development branch not found. Looking for branch named 'development', 'dev', or 'develop'.",
       );
     }
 
     console.log(
-      `✅ Found production branch: ${productionBranch.name} (${productionBranch.id})`,
+      `✅ Found development branch: ${developmentBranch.name} (${developmentBranch.id})`,
     );
 
     // Step 3: Create new Neon branch with TTL (2 weeks = 14 days)
@@ -140,7 +140,7 @@ async function initNewFeature(): Promise<void> {
         },
       ],
       branch: {
-        parent_id: productionBranch.id,
+        parent_id: developmentBranch.id,
         name: branchName.replace(/[^a-zA-Z0-9-]/g, "-"), // Sanitize branch name for Neon
         expire_at: expirationISO,
       },
@@ -228,7 +228,7 @@ async function initNewFeature(): Promise<void> {
 ┌─ Summary ─────────────────────────────────────────────────────────────────┐
 │ Git Branch:     ${branchName.padEnd(50)} │
 │ Neon Branch:    ${newBranchData.branch.name} (${newBranchData.branch.id})${" ".repeat(Math.max(0, 50 - newBranchData.branch.name.length - newBranchData.branch.id.length - 3))} │
-│ Parent Branch:  ${productionBranch.name.padEnd(50)} │
+│ Parent Branch:  ${developmentBranch.name.padEnd(50)} │
 │ Expires:        ${expirationDate.toLocaleDateString()} (14 days)${" ".repeat(Math.max(0, 50 - expirationDate.toLocaleDateString().length - 10))} │
 │ Database URL:   Updated in .env file${" ".repeat(27)} │
 │ Connection:     ${(poolerHost ? "Pooled connection enabled" : "Direct connection").padEnd(50)} │
